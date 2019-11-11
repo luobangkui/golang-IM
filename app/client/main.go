@@ -2,7 +2,7 @@ package main
 
 import (
 	"flag"
-	"github.com/luobangkui/im-learn-about/internal/client"
+	"github.com/luobangkui/golang-IM/internal/client"
 
 )
 
@@ -17,19 +17,16 @@ func main() {
 	flag.Parse()
 	cli := new(client.MsgClient)
 	cli.Conn =client.InitMsgSenderConn(*addr)
-
 	cli.Option = client.Option{
 		Nsqaddr:*nsqdaddr,
 		ServerAddr:*addr,
 	}
-
 	cli.Init()
 
-	go cli.MessageHandle(*nsqdaddr,*rid)
+	go cli.ProcessEvent()
 
+	pause := make(chan int)
+	//go cli.MessageHandle(*nsqdaddr,*rid)
 
-
-
-
-
+	<- pause
 }

@@ -6,14 +6,17 @@ import (
 	"log"
 	"github.com/spf13/cast"
 	"net/http"
-	message2 "github.com/luobangkui/im-learn-about/message"
-	"encoding/json"
+	message2 "github.com/luobangkui/golang-IM/message"
 	"github.com/gorilla/websocket"
 	"fmt"
-	"github.com/luobangkui/im-learn-about/config"
+	"github.com/luobangkui/golang-IM/config"
 	"time"
 	"gopkg.in/redis.v5"
+	"io/ioutil"
+	"github.com/json-iterator/go"
 )
+
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 
 var upgrader = websocket.Upgrader{} // use default options
@@ -26,9 +29,9 @@ type ImOptions struct {
 
 	Producer nsq.Producer
 
-	Db  sql.DB
+	Db  *sql.DB
 
-	Redis redis.Client
+	Redis *redis.Client
 }
 
 var DefaultImOptions = &ImOptions{
@@ -71,15 +74,30 @@ func WithProducer(p nsq.Producer) Option {
 
 func WithDatabase(d sql.DB) Option  {
 	return func(o *ImOptions) {
-		o.Db = d
+		o.Db = &d
 	}
 }
 
 func WithRedis(d redis.Client) Option  {
 	return func(o *ImOptions) {
-		o.Redis = d
+		o.Redis = &d
 	}
 }
+
+func (im *IM_server)ValidateUserPass(w http.ResponseWriter, r *http.Request) {
+	log.Println("validate user pass!!")
+	body, _ := ioutil.ReadAll(r.Body)
+	up := &UserPass{}
+	err := json.Unmarshal(body,up)
+	if err != nil {
+		log.Println(err)
+		// failed validate
+		w.Write([]byte("-1"))
+	}
+	uid ,err := ValidateUserPass(im.options.Db,up.Username,up.Password)
+	w.Write([]byte(uid))
+}
+
 
 
 

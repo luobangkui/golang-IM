@@ -1,11 +1,11 @@
 package mysql
 
 import (
-	"github.com/luobangkui/im-learn-about/utils/log"
+	"github.com/luobangkui/golang-IM/utils/log"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"database/sql"
-	"github.com/luobangkui/im-learn-about/config"
+	"github.com/luobangkui/golang-IM/config"
 )
 
 func NewDatabase(config config.Config) *sql.DB {

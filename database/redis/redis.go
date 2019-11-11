@@ -1,7 +1,7 @@
 package redis
 
 import (
-	"github.com/luobangkui/im-learn-about/config"
+	"github.com/luobangkui/golang-IM/config"
 	"gopkg.in/redis.v5"
 )
 

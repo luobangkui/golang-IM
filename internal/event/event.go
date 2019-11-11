@@ -91,7 +91,7 @@ type EventBus struct {
 
 func NewEventBus() *EventBus {
 	eb := &EventBus{
-		events: make(chan *Event),
+		events: make(chan *Event,1),
 		done: make(chan struct{}),
 		group: &sync.WaitGroup{},
 		subscribers: []Subscriber{},

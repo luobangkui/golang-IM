@@ -1,22 +1,26 @@
 package client
 
 import (
-	m2 "github.com/luobangkui/im-learn-about/message"
+	m2 "github.com/luobangkui/golang-IM/message"
 	"github.com/gorilla/websocket"
 	"net/url"
 	"fmt"
 	"encoding/json"
-	"github.com/luobangkui/im-learn-about/utils/log"
+	"github.com/luobangkui/golang-IM/utils/log"
 	"github.com/nsqio/go-nsq"
 	"os"
 	"math/rand"
-	"github.com/luobangkui/im-learn-about/internal/event"
+	"github.com/luobangkui/golang-IM/internal/event"
 	"github.com/spf13/cast"
-	"github.com/luobangkui/im-learn-about/message"
+	"github.com/luobangkui/golang-IM/message"
 	"time"
 	"bufio"
 	"os/signal"
 	"syscall"
+	"net/http"
+	"github.com/luobangkui/golang-IM/server"
+	"strings"
+	"io/ioutil"
 )
 
 var (
@@ -56,49 +60,74 @@ type MsgClient struct {
 func (client *MsgClient)Init()  {
 	client.MessageDump = make(chan m2.Msg)
 	client.MsgCache = make(map[int64]m2.Msg)
+	client.eventBus = event.NewEventBus()
+	client.AddSubscriber(client.onHandle)
 }
 
-func (client *MsgClient)AddSubscriber()  {
-	client.eventBus.Subscribe(client.onHandle)
+func (client *MsgClient)AddSubscriber(c event.Subscriber)  {
+	client.eventBus.Subscribe(c)
 }
 
 func (client *MsgClient) onHandle(evt *event.Event)  {
-	log.Debugf("event fired >> %v", evt)
 	evt.Processer(evt)
 
 }
 
-func (client *MsgClient)processEvent()  {
-
-
-
-
+func (client *MsgClient)ProcessEvent()  {
+	chatEvt := event.NewEvent(USER_LOGIN,"",event.WithProcessor(client.initState))
+	client.eventBus.Emit(chatEvt)
 }
 
 func (client *MsgClient)initState(evt *event.Event)  {
 	log.Debugf("%v event fired",evt.Type)
 	fmt.Println("请输入用户名")
-	var username string
-	fmt.Scanln(&username)
-
+	var username string = "张三"
+	//fmt.Scanln(&username)
 	fmt.Println("请输入密码")
-	var password string
-	fmt.Scanln(&password)
-
-	//TODO 验证并登录,应该需要加密传输的
-	line := username+":"+password
-
-	msg := message.Msg{
-		MsgId:   int64(0),
-		Content: line,
-		MsgType:2,
+	var password string = "1234"
+	//fmt.Scanln(&password)
+	addr := fmt.Sprintf("http://%s/login",client.Option.ServerAddr)
+	fmt.Println(addr)
+	uid := client.loginAndReturnUid(addr,username,password)
+	if uid == "-1" || uid == "" {
+		log.Info("username or password incorrect")
+		return
 	}
-	client.MessageDump <- msg
+	chatEvt := event.NewEvent(CHAT,"",event.WithProcessor(client.processChatBefore))
+	chatEvt.Sender = cast.ToInt64(uid)
+	client.eventBus.Emit(chatEvt)
+}
+
+func (client *MsgClient)loginAndReturnUid(addr,user,pass string) string {
+	httpCli := &http.Client{}
+	userPass := &server.UserPass{
+		Username:user,
+		Password:pass,
+	}
+	req, err := json.Marshal(userPass)
+
+	if err != nil {
+		return "-1"
+	}
+	resp, err := httpCli.Post(
+		addr,
+		"application/json; charset=utf-8",
+		strings.NewReader(string(req)),
+	)
+	if err != nil {
+		log.Info(err)
+		return "-1"
+	}
+	bytes, err := ioutil.ReadAll(resp.Body)
+	uid := string(bytes)
+	return uid
 }
 
 
+
 //登入事件处理
-func (client *MsgClient) processLogin(evt *event.Event)  {
+func (client *MsgClient) processChatBefore(evt *event.Event)  {
+	log.Infof("%v event fired",evt.Type)
 
 	fmt.Println("联系人")
 
@@ -110,8 +139,6 @@ func (client *MsgClient) processLogin(evt *event.Event)  {
 	fmt.Scanln(&reciever)
 
 	//TODO 列出最近聊天记录
-
-	//TODO 得到用户id number，可以开始向他发送消息了
 	//登录之后发布chat事件
 	chatEvt := event.NewEvent(CHAT,"",event.WithProcessor(client.processChat))
 	chatEvt.Sender = evt.Sender
@@ -120,7 +147,7 @@ func (client *MsgClient) processLogin(evt *event.Event)  {
 }
 
 func (client *MsgClient) processChat(evt *event.Event)  {
-
+	log.Debugf("%v event fired",evt.Type)
 	var senderid int64
 	var recieverid int64
 	//TODO chat process

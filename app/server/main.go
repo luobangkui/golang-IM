@@ -6,10 +6,10 @@ import (
 	"html/template"
 	"net/http"
 	"log"
-	"github.com/luobangkui/im-learn-about/config"
-	"github.com/luobangkui/im-learn-about/server"
-	"github.com/luobangkui/im-learn-about/database/mysql"
-	"github.com/luobangkui/im-learn-about/database/redis"
+	"github.com/luobangkui/golang-IM/config"
+	"github.com/luobangkui/golang-IM/server"
+	"github.com/luobangkui/golang-IM/database/mysql"
+	"github.com/luobangkui/golang-IM/database/redis"
 )
 
 var addr = flag.String("addr", "localhost:8080", "http service address")
@@ -44,6 +44,7 @@ func main() {
 	im := server.NewImServer(options...)
 
 	http.HandleFunc("/send_msg", im.ProcessSendMsg)
+	http.HandleFunc("/login",im.ValidateUserPass)
 	http.HandleFunc("/", home)
 	log.Fatal(http.ListenAndServe(*addr, nil))
 }
