@@ -1,0 +1,15 @@
+#this is config for server
+http_addr = "localhost:8080"
+nsqd_addr = "localhost:9876"
+
+
+[db]
+addr = "127.0.0.1:3306"
+user = "root"
+password = "xiaoluo1370"
+database = "imdata"
+
+[redis]
+addr = "127.0.0.1:6379"
+db = "1"
+password = ""
